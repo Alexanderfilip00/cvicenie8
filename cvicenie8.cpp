@@ -18,25 +18,22 @@ cvicenie8::cvicenie8(QWidget *parent)
     bool ok;
     int i,j;
     
-    QTextStream instream(&FileOtazky);
+    QTextStream instream(&FileOtazky);      //temporary premenna na citanie riadkov
     QString riadok = instream.readLine();
     int QuestionsAmmount = riadok.toInt(&ok);
     if (!ok) {
         qDebug() << "Chyba konverzie.";
         exit(1);
     }
-
-    QuestionsSet = new QString[QuestionsAmmount];
-    AnswersSet = new QString[QuestionsAmmount*4];
-    CorrectASet = new int[QuestionsAmmount];
+    otazky = new Question[QuestionsAmmount];
+    a.reserve(QuestionsAmmount);
 
     for (i = 0; i < QuestionsAmmount; i++) {
-
         a.push_back(i);
 
-        QuestionsSet[i] = instream.readLine();
+        otazky[i].setQuestion(instream.readLine());
         riadok = instream.readLine();
-        CorrectASet[i] = riadok.toInt(&ok);
+        otazky[i].setCorrectA(riadok.toInt(&ok));
 
         if (!ok) {
             qDebug() << "Chyba konverzie.";
@@ -44,7 +41,7 @@ cvicenie8::cvicenie8(QWidget *parent)
         }
 
         for (j = 0; j < 4; j++) {
-            AnswersSet[i*4+j] = instream.readLine();
+            otazky[i].setAnswer(j, instream.readLine());
         }
 
     }
@@ -59,7 +56,7 @@ cvicenie8::cvicenie8(QWidget *parent)
 
 void cvicenie8::on_NovaHra_clicked() {
 
-    ui.ScoreBox->setValue(body);
+    ui.ScoreBox->setValue(hrac.getBody());
     ui.pushButton_Preskocit->setEnabled(true);
     ui.Button_Answ1->setEnabled(true);
     ui.Button_Answ2->setEnabled(true);
@@ -71,6 +68,7 @@ void cvicenie8::on_NovaHra_clicked() {
     ui.Zolik2->setMaximumWidth(16777215);
     ui.Zolik3->setMaximumWidth(16777215);
 
+    hrac.setMeno(ui.Meno->text());
     ui.Meno->setEnabled(false);
     ui.DiffBox->setEnabled(false);
     ui.checkBox_Random->setEnabled(false);
@@ -102,20 +100,17 @@ void cvicenie8::on_NovaHra_clicked() {
         std::random_shuffle(std::begin(a), std::end(a));
     }
    
-    ui.Otazka->setText(QuestionsSet[a[poradie]]);
-    ui.Button_Answ1->setText(AnswersSet[a[poradie] * 4 + 0]);
-    ui.Button_Answ2->setText(AnswersSet[a[poradie] * 4 + 1]);
-    ui.Button_Answ3->setText(AnswersSet[a[poradie] * 4 + 2]);
-    ui.Button_Answ4->setText(AnswersSet[a[poradie] * 4 + 3]);
-
-    
-
+    ui.Otazka->setText(otazky[a[hrac.getPoradie()]].getQuestion());
+    ui.Button_Answ1->setText(otazky[a[hrac.getPoradie()]].getAnswer(0));
+    ui.Button_Answ2->setText(otazky[a[hrac.getPoradie()]].getAnswer(1));
+    ui.Button_Answ3->setText(otazky[a[hrac.getPoradie()]].getAnswer(2));
+    ui.Button_Answ4->setText(otazky[a[hrac.getPoradie()]].getAnswer(3));
 }
 
 void cvicenie8::on_KoniecHry_clicked()
 {
-    body = body + ((10 - (poradie+1)) * (-0.5));
-    ui.ScoreBox->setValue(body);
+    hrac.addBody((10 - (hrac.getPoradie())) * (-0.5));
+    ui.ScoreBox->setValue(hrac.getBody());
 
     ui.Meno->setReadOnly(false);
     ui.Meno->setEnabled(true);
@@ -159,35 +154,40 @@ void cvicenie8::on_KoniecHry_clicked()
     ui.Otazka->setText("Hra ukoncena. Skontrolujte si pocet bodov. Pre zacatie novej hry kliknite na 'Nova hra'");
     int i;
     for (i = 0; i < 3; i++) {
-        zoliky[i] = true;
+        hrac.setZolik(i,true);
     }
     for (i = 0; i < 9; i++) {
         a[i] = i;
     }
-    poradie = 0;
+    hrac.setPoradie(0);
     randvalue = 0;
-    body = 0;
-    
+    hrac.setBody(0);
+
+    for (i = 0; i < 3; i++) {
+        hrac.setZolik(i, true);
+    }
 }
 
 void cvicenie8::on_Meno_editingFinished()
 {
+    hrac.setMeno(ui.Meno->text());
     ui.NovaHra->setEnabled(true);
 }
 
 void cvicenie8::on_Zolik1_clicked() {
-    zoliky[0] = false;
+    hrac.setZolik(0, false);
     ui.Zolik1->setEnabled(false);
     ui.Zolik2->setEnabled(false);
     ui.Zolik3->setEnabled(false);
 
 
     do { randvalue = rand() % 4 + 1; 
-    } while (randvalue == CorrectASet[a[poradie]]);
+    } while (randvalue == otazky[a[hrac.getPoradie()]].getCorrectA());
+  
 
     int i;
     for (i = 1; i <= 4; i++) {
-        if (i != randvalue && i != CorrectASet[a[poradie]]) {
+        if (i != randvalue && i != otazky[a[hrac.getPoradie()]].getCorrectA()) {
             switch (i) {
                 case 1:
                     ui.Button_Answ1->setEnabled(false);
@@ -209,18 +209,18 @@ void cvicenie8::on_Zolik1_clicked() {
 }
 
 void cvicenie8::on_Zolik2_clicked() {
-    zoliky[1] = false;
+    hrac.setZolik(1, false);
     ui.Zolik1->setEnabled(false);
     ui.Zolik2->setEnabled(false);
     ui.Zolik3->setEnabled(false);
 
     do {
         randvalue = rand() % 4 + 1;
-    } while (randvalue == CorrectASet[a[poradie]]);
+    } while (randvalue == otazky[a[hrac.getPoradie()]].getCorrectA());
 
     int i;
     for (i = 1; i <= 4; i++) {
-        if (i != randvalue && i != CorrectASet[a[poradie]]) {
+        if (i != randvalue && i != otazky[a[hrac.getPoradie()]].getCorrectA()) {
             switch (i) {
             case 1:
                 ui.Button_Answ1->setEnabled(false);
@@ -241,7 +241,7 @@ void cvicenie8::on_Zolik2_clicked() {
 }
 
 void cvicenie8::on_Zolik3_clicked() {
-    zoliky[2] = false;
+    hrac.setZolik(2, false);
     ui.Zolik1->setEnabled(false);
     ui.Zolik2->setEnabled(false);
     ui.Zolik3->setEnabled(false);
@@ -249,11 +249,11 @@ void cvicenie8::on_Zolik3_clicked() {
 
     do {
         randvalue = rand() % 4 + 1;
-    } while (randvalue == CorrectASet[a[poradie]]);
+    } while (randvalue == otazky[a[hrac.getPoradie()]].getCorrectA());
 
     int i;
     for (i = 1; i <= 4; i++) {
-        if (i != randvalue && i != CorrectASet[a[poradie]]) {
+        if (i != randvalue && i != otazky[a[hrac.getPoradie()]].getCorrectA()) {
             switch (i) {
             case 1:
                 ui.Button_Answ1->setEnabled(false);
@@ -276,28 +276,28 @@ void cvicenie8::on_Zolik3_clicked() {
 void cvicenie8::on_pushButton_Potvrdit_clicked()
 {
 
-    if (ui.Button_Answ1->isChecked() && CorrectASet[a[poradie]] == 1) {
+    if (ui.Button_Answ1->isChecked() && otazky[a[hrac.getPoradie()]].getCorrectA() == 1) {
         //qDebug() << "spravne bolo oznacene cislo 1";
-        body++;
+        hrac.addBody(1.0);
     }
-    else if (ui.Button_Answ2->isChecked() && CorrectASet[a[poradie]] == 2) {
+    else if (ui.Button_Answ2->isChecked() && otazky[a[hrac.getPoradie()]].getCorrectA() == 2) {
         //qDebug() << "spravne bolo oznacene cislo 2";
-        body++;
+        hrac.addBody(1.0);
     }
-    else if (ui.Button_Answ3->isChecked() && CorrectASet[a[poradie]] == 3) {
+    else if (ui.Button_Answ3->isChecked() && otazky[a[hrac.getPoradie()]].getCorrectA() == 3) {
         //qDebug() << "spravne bolo oznacene cislo 3";
-        body++;
+        hrac.addBody(1.0);
     }
-    else if (ui.Button_Answ4->isChecked() && CorrectASet[a[poradie]] == 4) {
+    else if (ui.Button_Answ4->isChecked() && otazky[a[hrac.getPoradie()]].getCorrectA() == 4) {
         //qDebug() << "spravne bolo oznacene cislo 4";
-        body++;
+        hrac.addBody(1.0);
     }
     else {
         //qDebug() << "nebola oznacena spravna moznost.";
-        body--;
+        hrac.addBody(-1.0);
     }
 
-    ui.ScoreBox->setValue(body);
+    ui.ScoreBox->setValue(hrac.getBody());
 
     ui.pushButton_Potvrdit->setEnabled(false);
     ui.Button_Answ1->setEnabled(true);
@@ -322,13 +322,12 @@ void cvicenie8::on_pushButton_Potvrdit_clicked()
     ui.Button_Answ4->setAutoExclusive(true);
 
 
-    if (zoliky[0] == true) ui.Zolik1->setEnabled(true);
-    if (zoliky[1] == true) ui.Zolik2->setEnabled(true);
-    if (zoliky[2] == true) ui.Zolik3->setEnabled(true);
+    if (hrac.getZolik(0) == true) ui.Zolik1->setEnabled(true);
+    if (hrac.getZolik(1) == true) ui.Zolik2->setEnabled(true);
+    if (hrac.getZolik(2) == true) ui.Zolik3->setEnabled(true);
 
-    poradie++;
-    if (poradie == 10) {
-        poradie = 9;
+    hrac.addPoradie();
+    if (hrac.getPoradie() == 10) {
         ui.Button_Answ1->setEnabled(false);
         ui.Button_Answ1->setText("");
         ui.Button_Answ2->setEnabled(false);
@@ -346,11 +345,13 @@ void cvicenie8::on_pushButton_Potvrdit_clicked()
         ui.Otazka->setText("Koniec hry, kliknite na 'Ukoncit hru'");
     }
     else {
-        ui.Otazka->setText(QuestionsSet[a[poradie]]);
-        ui.Button_Answ1->setText(AnswersSet[a[poradie] * 4 + 0]);
-        ui.Button_Answ2->setText(AnswersSet[a[poradie] * 4 + 1]);
-        ui.Button_Answ3->setText(AnswersSet[a[poradie] * 4 + 2]);
-        ui.Button_Answ4->setText(AnswersSet[a[poradie] * 4 + 3]);
+
+        ui.Otazka->setText(otazky[a[hrac.getPoradie()]].getQuestion());
+        ui.Button_Answ1->setText(otazky[a[hrac.getPoradie()]].getAnswer(0));
+        ui.Button_Answ2->setText(otazky[a[hrac.getPoradie()]].getAnswer(1));
+        ui.Button_Answ3->setText(otazky[a[hrac.getPoradie()]].getAnswer(2));
+        ui.Button_Answ4->setText(otazky[a[hrac.getPoradie()]].getAnswer(3));
+
     }
     
 }
@@ -379,18 +380,16 @@ void cvicenie8::on_pushButton_Preskocit_clicked()
     ui.Button_Answ4->setChecked(false);
     ui.Button_Answ4->setAutoExclusive(true);
 
+    if (hrac.getZolik(0) == true) ui.Zolik1->setEnabled(true);
+    if (hrac.getZolik(1) == true) ui.Zolik2->setEnabled(true);
+    if (hrac.getZolik(2) == true) ui.Zolik3->setEnabled(true);
 
-    if (zoliky[0] == true) ui.Zolik1->setEnabled(true);
-    if (zoliky[1] == true) ui.Zolik2->setEnabled(true);
-    if (zoliky[2] == true) ui.Zolik3->setEnabled(true);
+    hrac.addBody(-0.5);
 
-    body = body - 0.5;
+    ui.ScoreBox->setValue(hrac.getBody());
 
-    ui.ScoreBox->setValue(body);
-
-    poradie++;
-    if (poradie == 10) {
-        poradie = 9;
+    hrac.addPoradie();
+    if (hrac.getPoradie() == 10) {
         ui.Button_Answ1->setEnabled(false);
         ui.Button_Answ1->setText("");
         ui.Button_Answ2->setEnabled(false);
@@ -408,11 +407,12 @@ void cvicenie8::on_pushButton_Preskocit_clicked()
         ui.Otazka->setText("Koniec hry, kliknite na 'Ukoncit hru'");
     }
     else {
-        ui.Otazka->setText(QuestionsSet[a[poradie]]);
-        ui.Button_Answ1->setText(AnswersSet[a[poradie] * 4 + 0]);
-        ui.Button_Answ2->setText(AnswersSet[a[poradie] * 4 + 1]);
-        ui.Button_Answ3->setText(AnswersSet[a[poradie] * 4 + 2]);
-        ui.Button_Answ4->setText(AnswersSet[a[poradie] * 4 + 3]);
+        ui.Otazka->setText(otazky[a[hrac.getPoradie()]].getQuestion());
+        ui.Button_Answ1->setText(otazky[a[hrac.getPoradie()]].getAnswer(0));
+        ui.Button_Answ2->setText(otazky[a[hrac.getPoradie()]].getAnswer(1));
+        ui.Button_Answ3->setText(otazky[a[hrac.getPoradie()]].getAnswer(2));
+        ui.Button_Answ4->setText(otazky[a[hrac.getPoradie()]].getAnswer(3));
+
     }
 
 }
