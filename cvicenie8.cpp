@@ -168,10 +168,15 @@ void cvicenie8::on_KoniecHry_clicked()
     }
 }
 
-void cvicenie8::on_Meno_editingFinished()
+void cvicenie8::on_Meno_textChanged()
 {
-    hrac.setMeno(ui.Meno->text());
-    ui.NovaHra->setEnabled(true);
+    if (ui.Meno->text() != "") {
+        ui.NovaHra->setEnabled(true);
+        hrac.setMeno(ui.Meno->text());
+    }
+    else {
+        ui.NovaHra->setEnabled(false);
+    }
 }
 
 void cvicenie8::on_Zolik1_clicked() {

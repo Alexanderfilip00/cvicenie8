@@ -66,7 +66,7 @@ private:
 private slots:
     void on_NovaHra_clicked();
     void on_KoniecHry_clicked();
-    void on_Meno_editingFinished();
+    void on_Meno_textChanged();
     void on_Zolik1_clicked();
     void on_Zolik2_clicked();
     void on_Zolik3_clicked();
